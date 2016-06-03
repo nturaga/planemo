@@ -4,12 +4,11 @@ Click
 configparser
 six>=1.7.0
 pyyaml
-# TODO: remove pyaml used by bioconductor_skeleton
-pyaml
-bioblend
+bioblend>=0.7.0
 docutils
 jinja2
 glob2
 virtualenv
-galaxy-lib>=16.7.2
-cwltool ; python_version == '2.7'
+gxformat2
+galaxy-lib>=16.7.7
+cwltool>=1.0.20160511162129 ; python_version == '2.7'
