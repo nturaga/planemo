@@ -35,9 +35,10 @@ alias conda_env_deactivate="source %s; %s"
 # @options.skip_install_option()  # TODO
 @command_function
 def cli(ctx, path, **kwds):
-    """How to activate conda environment for tool.
+    """Activate a conda environment for tool.
 
-    Source output to activate a conda environment for this tool.
+    Source the output of this command to activate a conda environment for this
+    tool.
 
         % . <(planemo conda_env bowtie2.xml)
         % which bowtie2
@@ -45,7 +46,7 @@ def cli(ctx, path, **kwds):
     """
     conda_context = build_conda_context(ctx, use_planemo_shell_exec=False, **kwds)
     conda_targets = collect_conda_targets(
-        path, conda_context=conda_context
+        ctx, path, conda_context=conda_context
     )
     installed_conda_targets = conda_util.filter_installed_targets(
         conda_targets, conda_context=conda_context

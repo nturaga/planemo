@@ -1,5 +1,4 @@
-""" Click definitions for various shared options and arguments.
-"""
+"""Click definitions for various shared options and arguments."""
 
 from __future__ import absolute_import
 
@@ -334,6 +333,14 @@ def job_config_option():
     )
 
 
+def mulled_containers_option():
+    return planemo_option(
+        "--mulled_containers",
+        is_flag=True,
+        help="Test tools against mulled containers (forces --docker).",
+    )
+
+
 def install_galaxy_option():
     return planemo_option(
         "--install_galaxy",
@@ -431,13 +438,15 @@ def conda_debug_option():
 
 def conda_ensure_channels_option():
     return planemo_option(
+        "conda_ensure_channels",
+        "--conda_channels",
         "--conda_ensure_channels",
         type=str,
         use_global_config=True,
         use_env_var=True,
         help=("Ensure conda is configured with specified comma separated "
               "list of channels."),
-        default="r,bioconda,iuc",
+        default="conda-forge,r,bioconda,iuc",
     )
 
 
@@ -541,7 +550,6 @@ def shed_project_arg(multiple=True):
         exists=True,
         file_okay=False,
         dir_okay=True,
-        writable=True,
         resolve_path=True,
     )
     name = "paths" if multiple else "path"
@@ -555,7 +563,24 @@ def shed_project_arg(multiple=True):
     )
 
 
-def optional_project_arg(exists=True):
+def recipe_arg(multiple=True):
+    name = "paths" if multiple else "path"
+    nargs = -1 if multiple else 1
+    return click.argument(
+        name,
+        metavar="RECIPE_DIR",
+        type=click.Path(
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+        ),
+        nargs=nargs,
+        callback=_optional_tools_default,
+    )
+
+
+def optional_project_arg(exists=True, default="."):
     arg_type = click.Path(
         exists=exists,
         file_okay=False,
@@ -566,7 +591,7 @@ def optional_project_arg(exists=True):
     return click.argument(
         "path",
         metavar="PROJECT",
-        default=".",
+        default=default,
         type=arg_type
     )
 
@@ -863,6 +888,7 @@ def galaxy_target_options():
         no_cleanup_option(),
         galaxy_email_option(),
         galaxy_docker_options(),
+        mulled_containers_option(),
         # Profile options...
         job_config_option(),
         tool_dependency_dir_option(),
@@ -917,11 +943,10 @@ def shed_fail_fast_option():
 
 def lint_xsd_option():
     return planemo_option(
-        "--xsd",
+        "--xsd/--no_xsd",
         is_flag=True,
-        default=False,
-        help=("Include experimental tool XSD validation in linting "
-              "process (requires xmllint on PATH or lxml installed).")
+        default=True,
+        help=("Include tool XSD validation in linting process.")
     )
 
 
@@ -947,8 +972,8 @@ def skip_option():
         "-s",
         "--skip",
         default=None,
-        help=("Comma-separated list of lint tests to skip (e.g send ."
-              "--skip 'citations,xml_order' to skip linting of citations "
+        help=("Comma-separated list of lint tests to skip (e.g. passing "
+              "--skip 'citations,xml_order' would skip linting of citations "
               "and best-practice XML ordering.")
     )
 
@@ -1221,4 +1246,247 @@ def ci_find_options():
         ci_chunk_count_option(),
         ci_chunk_option(),
         ci_output_option(),
+    )
+
+
+def tool_init_id_option(prompt=True):
+    return planemo_option(
+        "-i",
+        "--id",
+        type=click.STRING,
+        prompt=prompt,
+        help="Short identifier for new tool (no whitespace)",
+    )
+
+
+def tool_init_tool_option():
+    return planemo_option(
+        "-t",
+        "--tool",
+        default=None,
+        type=click.Path(exists=False,
+                        file_okay=True,
+                        dir_okay=False,
+                        writable=True,
+                        resolve_path=True),
+        help="Output path for new tool (default is <id>.xml)",
+    )
+
+
+def tool_init_name_option(prompt=True, help="Name for new tool (user facing)"):
+    return planemo_option(
+        "-n",
+        "--name",
+        type=click.STRING,
+        prompt=prompt,
+        help=help,
+    )
+
+
+def tool_init_version_option():
+    return planemo_option(
+        "--version",
+        default="0.1.0",
+        type=click.STRING,
+        help="Tool XML version.",
+    )
+
+
+def tool_init_description_option():
+    return planemo_option(
+        "-d",
+        "--description",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        help="Short description for new tool (user facing)",
+    )
+
+
+def tool_init_command_option():
+    return planemo_option(
+        "-c",
+        "--command",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        help=("Command potentially including cheetah variables ()"
+              "(e.g. 'seqtk seq -a $input > $output')"),
+    )
+
+
+def tool_init_doi_option():
+    return planemo_option(
+        "--doi",
+        type=click.STRING,
+        default=None,
+        multiple=True,
+        prompt=False,
+        help=("Supply a DOI (http://www.doi.org/) easing citation of the tool "
+              "for Galxy users (e.g. 10.1101/014043).")
+    )
+
+
+def tool_init_test_case_option():
+    return planemo_option(
+        "--test_case",
+        is_flag=True,
+        default=None,
+        prompt=False,
+        help=("For use with --example_commmand, generate a tool test case from "
+              "the supplied example."),
+    )
+
+
+def tool_init_macros_option():
+    return planemo_option(
+        "--macros",
+        is_flag=True,
+        default=None,
+        prompt=False,
+        help="Generate a macros.xml for reuse across many tools.",
+    )
+
+
+def tool_init_cite_url_option():
+    return planemo_option(
+        "--cite_url",
+        type=click.STRING,
+        default=None,
+        multiple=True,
+        prompt=False,
+        help=("Supply a URL for citation.")
+    )
+
+
+def tool_init_input_option():
+    return planemo_option(
+        "--input",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        multiple=True,
+        help="An input description (e.g. input.fasta)",
+    )
+
+
+def tool_init_output_option():
+    return planemo_option(
+        "--output",
+        type=click.STRING,
+        multiple=True,
+        default=None,
+        prompt=False,
+        help=("An output location (e.g. output.bam), the Galaxy datatype is "
+              "inferred from the extension."),
+    )
+
+
+def tool_init_help_text_option():
+    return planemo_option(
+        "--help_text",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        help="Help text (reStructuredText)",
+    )
+
+
+def tool_init_help_from_command_option():
+    return planemo_option(
+        "--help_from_command",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        help="Auto populate help from supplied command.",
+    )
+
+
+def tool_init_example_input_option():
+    return planemo_option(
+        "--example_input",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        multiple=True,
+        help=("For use with --example_command, replace input file (e.g. 2.fastq "
+              "with a data input parameter)."),
+    )
+
+
+def tool_init_example_output_option():
+    return planemo_option(
+        "--example_output",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        multiple=True,
+        help=("For use with --example_command, replace input file (e.g. 2.fastq "
+              "with a tool output)."),
+    )
+
+
+def tool_init_named_output_option():
+    return planemo_option(
+        "--named_output",
+        type=click.STRING,
+        multiple=True,
+        default=None,
+        prompt=False,
+        help=("Create a named output for use with command block for example "
+              "specify --named_output=output1.bam and then use '-o $output1' "
+              "in your command block."),
+    )
+
+
+def tool_init_version_command_option():
+    return planemo_option(
+        "--version_command",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        help="Command to print version (e.g. 'seqtk --version')",
+    )
+
+
+REQUIREMENT_HELP = "Add a tool requirement package (e.g. 'seqtk' or 'seqtk@1.68')."
+
+
+def tool_init_requirement_option(help=REQUIREMENT_HELP):
+    return planemo_option(
+        "--requirement",
+        type=click.STRING,
+        default=None,
+        multiple=True,
+        prompt=False,
+        help=help,
+    )
+
+
+def tool_init_container_option():
+    return planemo_option(
+        "--container",
+        type=click.STRING,
+        default=None,
+        multiple=True,
+        prompt=False,
+        help="Add a Docker image identifier for this tool."
+    )
+
+
+EXAMPLE_COMMAND_HELP = (
+    "Example to command with paths to build Cheetah template from "
+    "(e.g. 'seqtk seq -a 2.fastq > 2.fasta'). Option cannot be used "
+    "with --command, should be used --example_input and "
+    "--example_output."
+)
+
+
+def tool_init_example_command_option(help=EXAMPLE_COMMAND_HELP):
+    return planemo_option(
+        "--example_command",
+        type=click.STRING,
+        default=None,
+        prompt=False,
+        help=help,
     )

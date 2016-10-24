@@ -2,11 +2,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import contextlib
+import fnmatch
 import os
 import shutil
 import sys
 import tempfile
 import time
+
+from sys import platform as _platform
 from xml.sax.saxutils import escape
 
 import click
@@ -19,6 +22,9 @@ from .exit_codes import (
     EXIT_CODE_NO_SUCH_TARGET,
     EXIT_CODE_OK,
 )
+
+
+IS_OS_X = _platform == "darwin"
 
 
 def communicate(cmds, **kwds):
@@ -88,16 +94,42 @@ def write_file(path, content, force=True):
         f.write(content)
 
 
-def untar_to(url, path, tar_args):
+def untar_to(url, path=None, tar_args=None):
     download_cmd = " ".join(download_command(url, quote_url=True))
     if tar_args:
-        if not os.path.exists(path):
-            os.makedirs(path)
+        if path:
+            if not os.path.exists(path):
+                os.makedirs(path)
 
         untar_cmd = "tar %s" % tar_args
         shell("%s | %s" % (download_cmd, untar_cmd))
     else:
         shell("%s > '%s'" % (download_cmd, path))
+
+
+def find_matching_directories(path, pattern, recursive):
+    """Find directories below supplied path with file matching pattern.
+
+    Returns an empty list if no matches are found, and if recursive is False
+    only the top directory specified by path will be considered.
+    """
+    dirs = []
+    if recursive:
+        if not os.path.isdir(path):
+            template = "--recursive specified with non-directory path [%s]"
+            message = template % (path)
+            raise Exception(message)
+
+        for base_path, dirnames, filenames in os.walk(path):
+            dirnames.sort()
+            for filename in fnmatch.filter(filenames, pattern):
+                dirs.append(base_path)
+    else:
+        if os.path.exists(os.path.join(path, pattern)):
+            dirs.append(path)
+        elif os.path.basename(path) == pattern:
+            dirs.append(os.path.dirname(path))
+    return dirs
 
 
 @contextlib.contextmanager
