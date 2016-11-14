@@ -1,25 +1,25 @@
-#!/usr/bin/env python
+"""Taken from bioconda.
 
-"""
-Taken from:
 https://github.com/bioconda/bioconda-recipes/blob/master/scripts/bioconductor/bioconductor_skeleton.py
 (written by Ryan Dale github: daler)
 """
 
-import shutil
-import tempfile
 import configparser
-from textwrap import dedent
-import tarfile
-import pyaml
 import hashlib
+import logging
 import os
 import re
-import bs4
+import shutil
+import tarfile
+import tempfile
 import urlparse
 from collections import OrderedDict
-import logging
+from textwrap import dedent
+
+import bs4
+import pyaml
 import requests
+
 
 logging.basicConfig(level=logging.INFO, format='[bioconductor_skeleton.py %(asctime)s]: %(message)s')
 logger = logging.getLogger()
@@ -47,18 +47,25 @@ GCC_PACKAGES = ['r-rcpp']
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-class PageNotFoundError(Exception): pass
+
+class PageNotFoundError(Exception):
+    """Page not found error."""
+
+    pass
+
 
 class BioCProjectPage(object):
+    """Main BiocProjectPage class."""
+
     def __init__(self, package):
-        """
+        """Initialize BioCProjectPage.
+
         Represents a single Bioconductor package page and provides access to
         scraped data.
         >>> x = BioCProjectPage('DESeq2')
         >>> x.tarball_url
-        'http://bioconductor.org/packages/release/bioc/src/contrib/DESeq2_1.8.2.tar.gz'
+        'https://bioarchive.galaxyproject.org/DESeq2_1.14.0.tar.gz'
         """
-
         self.base_url = base_url
         self.package = package
         self._md5 = None
@@ -73,7 +80,6 @@ class BioCProjectPage(object):
         # requests allows us to keep track of the final destination URL, which
         # we need for reconstructing the tarball URL.
         self.url = self.request.url
-
 
         # The table at the bottom of the page has the info we want. An earlier
         # draft of this script parsed the dependencies from the details table.
@@ -97,6 +103,8 @@ class BioCProjectPage(object):
     @property
     def bioaRchive_url(self):
         """
+        Return bioarchive URL.
+
         Returns the bioaRchive URL if one exists for this version of this
         package, otherwise returns None.
 
@@ -112,12 +120,9 @@ class BioCProjectPage(object):
         else:
             raise PageNotFoundError("Unexpected error: {0.status_code} ({0.reason})".format(response))
 
-
     @property
     def bioconductor_tarball_url(self):
-        """
-        Return the url to the tarball from the bioconductor site.
-        """
+        """Return the url to the tarball from the bioconductor site."""
         r = re.compile('{0}.*\.tar.gz'.format(self.package))
 
         def f(href):
@@ -136,6 +141,7 @@ class BioCProjectPage(object):
 
     @property
     def tarball_url(self):
+        """Return tarball url."""
         url = self.bioaRchive_url
         if url:
             return url
@@ -143,11 +149,14 @@ class BioCProjectPage(object):
 
     @property
     def tarball_basename(self):
+        """Return full path of tarball."""
         return os.path.basename(self.tarball_url)
 
     @property
     def cached_tarball(self):
         """
+        Download tarball to cache directory.
+
         Downloads the tarball to the `cached_bioconductor_tarballs` dir if one
         hasn't already been downloaded for this package.
 
@@ -177,9 +186,7 @@ class BioCProjectPage(object):
 
     @property
     def description(self):
-        """
-        Extract the DESCRIPTION file from the tarball and parse it.
-        """
+        """Extract the DESCRIPTION file from the tarball and parse it."""
         t = tarfile.open(self.cached_tarball)
         d = t.extractfile(os.path.join(self.package, 'DESCRIPTION')).read()
         self._contents = d
@@ -197,16 +204,14 @@ class BioCProjectPage(object):
 
         return dict(e)
 
-    #@property
-    #def version(self):
-    #    return self.description['version']
-
     @property
     def license(self):
+        """Add lisence to description."""
         return self.description['license']
 
     @property
     def imports(self):
+        """Return package dependencies."""
         try:
             return self.description['imports'].split(', ')
         except KeyError:
@@ -214,13 +219,15 @@ class BioCProjectPage(object):
 
     @property
     def depends(self):
+        """Return package description."""
         try:
             return self.description['depends'].split(', ')
         except KeyError:
             return []
 
     def _parse_dependencies(self, items):
-        """
+        """Return list of package dependencies.
+
         The goal is to go from
 
         ['package1', 'package2', 'package3 (>= 0.1)', 'package4']
@@ -233,7 +240,6 @@ class BioCProjectPage(object):
                 ('package3', " >=0.1"),
                 ('package1', ""),
             ]
-
         """
         results = []
         for item in items:
@@ -248,17 +254,9 @@ class BioCProjectPage(object):
                 raise ValueError("Found {0} toks: {1}".format(len(toks), toks))
         return results
 
-    @property
-    def dependencies(self):
-        if self._dependencies:
-            return self._dependencies
-
-        results = []
-
-        # Some packages specify a minimum R version, which we'll need to keep
-        # track of
-        specific_r_version = False
-
+    #  Helper functions for dependencies function
+    def _version_specs(self):
+        """Helper function for version specs."""
         # Sometimes a version is specified only in the `depends` and not in the
         # `imports`. We keep the most specific version of each.
         version_specs = list(
@@ -275,7 +273,21 @@ class BioCProjectPage(object):
                     versions[name] = version
             else:
                 versions[name] = version
+        return versions
 
+    @property
+    def dependencies(self):
+        """Define dependencies."""
+        if self._dependencies:
+            return self._dependencies
+
+        results = []
+
+        # Some packages specify a minimum R version, which we'll need to keep
+        # track of
+        specific_r_version = False
+
+        versions = self._version_specs(self)
 
         for name, version in sorted(versions.items()):
             # DESCRIPTION notes base R packages, but we don't need to specify
@@ -317,9 +329,10 @@ class BioCProjectPage(object):
 
     @property
     def md5(self):
-        """
-        Calculate the md5 hash of the tarball so it can be filled into the
-        meta.yaml.
+        """Get md5 hash.
+
+        Calculate the md5 hash of the tarball so it can be filled into
+        the meta.yaml.
         """
         if self._md5 is None:
             self._md5 = hashlib.md5(
@@ -408,9 +421,7 @@ class BioCProjectPage(object):
 
 
 def write_recipe(package, recipe_dir, force=False):
-    """
-    Write the meta.yaml and build.sh files.
-    """
+    """Write the meta.yaml and build.sh files."""
     proj = BioCProjectPage(package)
     recipe_dir = os.path.join(recipe_dir, 'bioconductor-' + proj.package.lower())
     if os.path.exists(recipe_dir) and not force:
@@ -431,21 +442,17 @@ def write_recipe(package, recipe_dir, force=False):
         # the dicts
         updated_version = updated_meta['package'].pop('version')
         current_version = current_meta['package'].pop('version')
-        updated_build_number = updated_meta['build'].pop('number')
+        # updated_build_number = updated_meta['build'].pop('number')  # FIXME
         current_build_number = current_meta['build'].pop('number')
 
         if (
-            (updated_version == current_version)
-            and
+            (updated_version == current_version) and
             (updated_meta != current_meta)
         ):
             proj.build_number = int(current_build_number) + 1
 
-
     with open(os.path.join(recipe_dir, 'meta.yaml'), 'w') as fout:
         fout.write(proj.meta_yaml)
-
-
 
     with open(os.path.join(recipe_dir, 'build.sh'), 'w') as fout:
         fout.write(dedent(
@@ -465,10 +472,8 @@ def write_recipe(package, recipe_dir, force=False):
             # http://docs.continuum.io/conda/build.html
             # for a list of environment variables that are set during the build
             # process.
-            # """
-            )
+            # """)
         )
-
 
 if __name__ == "__main__":
     import argparse
