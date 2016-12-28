@@ -6,10 +6,32 @@ History
 .. to_doc
 
 ---------------------
-0.36.0.dev0
+0.37.0.dev0
 ---------------------
 
     
+
+---------------------
+0.36.1 (2016-12-12)
+---------------------
+
+* Fix move error when using ``project_init``.
+  `Issue 388`_, `Pull Request 610`_
+* Improved integration testing for ``test`` command. `Pull Request 609`_
+* Update CWL links to v1.0 (thanks to `@mr-c`_).
+  `Pull Request 608`_
+
+---------------------
+0.36.0 (2016-12-11)
+---------------------
+
+* Bring in latest tool XSD file from Galaxy (thanks to `@peterjc`_).
+  `Pull Request 605`_
+* PEP8 fixes for various linting problems 
+  (thanks to `@peterjc`_).
+  `Pull Request 606`_
+* Update tool syntax URL to new URL (thanks to `@mvdbeek`_).
+  `Pull Request 602`_
 
 ---------------------
 0.35.0 (2016-11-14)
@@ -936,6 +958,13 @@ History
   tools - and more experimental features involving Docker and Homebrew. 7d07782_
 
 .. github_links
+.. _Issue 388: https://github.com/galaxyproject/planemo/issues/388
+.. _Pull Request 610: https://github.com/galaxyproject/planemo/pull/610
+.. _Pull Request 609: https://github.com/galaxyproject/planemo/pull/609
+.. _Pull Request 608: https://github.com/galaxyproject/planemo/pull/608
+.. _Pull Request 605: https://github.com/galaxyproject/planemo/pull/605
+.. _Pull Request 606: https://github.com/galaxyproject/planemo/pull/606
+.. _Pull Request 602: https://github.com/galaxyproject/planemo/pull/602
 .. _Pull Request 570: https://github.com/galaxyproject/planemo/pull/570
 .. _9228416: https://github.com/galaxyproject/planemo/commit/9228416
 .. _50d3c4a: https://github.com/galaxyproject/planemo/commit/50d3c4a

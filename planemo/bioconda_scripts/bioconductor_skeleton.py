@@ -63,8 +63,6 @@ class BioCProjectPage(object):
         Represents a single Bioconductor package page and provides access to
         scraped data.
         >>> x = BioCProjectPage('DESeq2')
-        >>> x.tarball_url
-        'https://bioarchive.galaxyproject.org/DESeq2_1.14.0.tar.gz'
         """
         self.base_url = base_url
         self.package = package
@@ -474,6 +472,7 @@ def write_recipe(package, recipe_dir, force=False):
             # process.
             # """)
         )
+
 
 if __name__ == "__main__":
     import argparse
